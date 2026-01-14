@@ -33,8 +33,12 @@ func snippetView(w http.ResponseWriter, r *http.Request) {
 
 	// Use the fmt.Sprintf() function to interpolate the id value with a
 	// message, then write it as the HTTP response.
-	msg := fmt.Sprintf("Display a specific snippet with ID %d...", id)
-	w.Write([]byte(msg))
+	// msg := fmt.Sprintf("Display a specific snippet with ID %d...", id)
+	// w.Write([]byte(msg))
+
+	// This will allow us to interpolate the wildcard id value in our
+	// response body message and write the response in a single line, like so:
+	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
 }
 
 // Add a snippetCreate handler function.
