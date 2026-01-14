@@ -17,9 +17,9 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	// Include the navigation partial in the template files.
 	files := []string{
-		"./ui/html/base.tmpl",
-		"./ui/html/partials/nav.tmpl",
-		"./ui/html/pages/home.tmpl",
+		"./ui/html/base.tmpl.html",
+		"./ui/html/partials/nav.tmpl.html",
+		"./ui/html/pages/home.tmpl.html",
 	}
 
 	// Use the template.ParseFiles() function to read the template file into a
