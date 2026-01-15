@@ -3,10 +3,19 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
 	mux := http.NewServeMux()
+
+	// os.Getenv() only reads from already setted system environment variables.
+	// so we use the godotenv package to read the .env file and set the
+	// environment variables before we call os.Getenv().
+	godotenv.Load() // Load .env file
+	addr := os.Getenv("SNIPPETBOX_ADDR")
 
 	// Create a file server which serves files out of the "./ui/static" dir.
 	// Note that the path given to the http.Dir function is relative to the project
@@ -23,7 +32,8 @@ func main() {
 	mux.HandleFunc("GET /snippet/view/{id}", snippetView)
 	mux.HandleFunc("GET /snippet/create", snippetCreate)
 	mux.HandleFunc("POST /snippet/create", snippetCreatePost)
-	log.Print("starting server on :4000")
-	err := http.ListenAndServe(":4000", mux)
+
+	log.Printf("starting server on %s", addr)
+	err := http.ListenAndServe(addr, mux)
 	log.Fatal(err)
 }
