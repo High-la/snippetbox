@@ -8,6 +8,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Define an application struct to hold the application-wide dependencies for the
+// web application. For now we'll only include the structured logger, but we'll
+// add more to this as the build progresses.
+type application struct {
+	logger *slog.Logger
+}
+
 func main() {
 
 	// Use the slog.New() function to initialize a new structured logger, which
@@ -18,6 +25,12 @@ func main() {
 		// u can also add custom level names or disable level display
 		Level: slog.LevelDebug,
 	}))
+
+	// Initialize a new instance of our application struct, containinig the
+	// dependencies (for now, the structured logger).
+	app := &application{
+		logger: logger,
+	}
 
 	// os.Getenv() only reads from already setted system environment variables.
 	// so we use the godotenv package to read the .env file and set the
@@ -37,11 +50,13 @@ func main() {
 	// "/static" prefix before the request reaches the file server.
 	mux.Handle("GET /static/", http.StripPrefix("/static", fileServer))
 
+	// Swap the route declarations to use the application struct's methods as the
+	// handler function.
 	// Register other application routes as normal.
-	mux.HandleFunc("GET /{$}", home)
-	mux.HandleFunc("GET /snippet/view/{id}", snippetView)
-	mux.HandleFunc("GET /snippet/create", snippetCreate)
-	mux.HandleFunc("POST /snippet/create", snippetCreatePost)
+	mux.HandleFunc("GET /{$}", app.home)
+	mux.HandleFunc("GET /snippet/view/{id}", app.snippetView)
+	mux.HandleFunc("GET /snippet/create", app.snippetCreate)
+	mux.HandleFunc("POST /snippet/create", app.snippetCreatePost)
 
 	// Use the Info() method to log the starting server message at Info severity
 	// (along with the listen address as an attribute).
