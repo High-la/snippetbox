@@ -39,8 +39,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		// use this to create a log entry at Error level containing the error
 		// message, also including the request method and URI as attributes to
 		// assist with debugging.
-		app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+
+		// use the serverErrorError() helper
+		app.serverError(w, r, err)
 		return
 	}
 
@@ -54,8 +57,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
 		// And we also need to update the code here to use the structured logger too.
-		app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+
+		//  Use the serverError() helper
+		app.serverError(w, r, err)
 	}
 
 	// w.Write([]byte("Hello from Snippetbox"))
