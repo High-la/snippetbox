@@ -12,7 +12,12 @@ func main() {
 
 	// Use the slog.New() function to initialize a new structured logger, which
 	// writes to the standard out stream and uses the default settings.
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		// logs caller file and line number
+		AddSource: true,
+		// u can also add custom level names or disable level display
+		Level: slog.LevelDebug,
+	}))
 
 	// os.Getenv() only reads from already setted system environment variables.
 	// so we use the godotenv package to read the .env file and set the
