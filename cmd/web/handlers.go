@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
+
+	"github.com/High-la/snippetbox/internal/models"
 )
 
 // Change the signature of the home hander so it is defined as amethod against
@@ -75,7 +78,22 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+
+	// Use the SnippetModel's Get() method to retrieve the data for a
+	// specific record based on its ID. if no matching record is found,
+	// return a 404 not found response.
+	snippet, err := app.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	// Write the snippet data as a plain-text to HTTP response body
+	fmt.Fprintf(w, "%+v", snippet)
 }
 
 // Change the signature of the snippetCreate handler so it is defined as a method
