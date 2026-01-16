@@ -1,21 +1,41 @@
 package main
 
 import (
+	"database/sql"
+	"flag"
 	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
+
+	_ "github.com/go-sql-driver/mysql" // New import
+	//
+	//	To use this model in our handlers we need to establish a new SnippetModel struct in our
+	//
+	// main() function and then inject it as a dependency via the application struct — just like we
+	// have with our other dependencies.
+	// Here’s how:
+	// Import models package
+	"github.com/High-la/snippetbox/internal/models"
 )
+
+// Add a snippets field to the application struct. This will allow us to
+// make the SnippetModel object available to our hadlers.
 
 // Define an application struct to hold the application-wide dependencies for the
 // web application. For now we'll only include the structured logger, but we'll
 // add more to this as the build progresses.
 type application struct {
-	logger *slog.Logger
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
+
+	// Define a new command-line flag for mysql DSN string.
+	dsn := flag.String("dsn", "web:1234@/snippetbox?parseTime=true", "MySQL data source name")
+	flag.Parse()
 
 	// Use the slog.New() function to initialize a new structured logger, which
 	// writes to the standard out stream and uses the default settings.
@@ -26,10 +46,27 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
+	// To keep the main() function tidy put the code for creating a connection
+	// pool into the separate openDB() function below. we pass and pass openDB() the DSN
+	// from the command-line flag.
+	db, err := openDB(*dsn)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+
+	// also defer a call to db.Close(), so that the connection pool is closed
+	// before the main function exits.
+	defer db.Close()
+
+	//Initialize a models.SnippetModel instance containing the connection pool
+	// and add it to the application dependencies.
+
 	// Initialize a new instance of our application struct, containinig the
 	// dependencies (for now, the structured logger).
 	app := &application{
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	// os.Getenv() only reads from already setted system environment variables.
@@ -42,11 +79,29 @@ func main() {
 	// (along with the listen address as an attribute).
 	logger.Info("starting server", "addr", addr)
 
-	err := http.ListenAndServe(addr, app.routes())
+	err = http.ListenAndServe(addr, app.routes())
 
 	// And we also use the Error() method to log any error message returned by
 	// http.ListenAndServer() at Error severity (with no additional attributes),
 	// and then call os.Exit(1) to terminate the application with exit code 1.
 	logger.Error(err.Error())
 	os.Exit(1)
+}
+
+// The openDB() function wraps sql.Open() and returns a sql.DB connection pool
+// for a given DSN.
+func openDB(dsn string) (*sql.DB, error) {
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }
