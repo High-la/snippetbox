@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -16,16 +15,26 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	// func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", "Go")
 
+	snippets, err := app.snippets.Latest()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	for _, snippet := range snippets {
+		fmt.Fprintf(w, "%+v\n", snippet)
+	}
+
 	// Initialize a slice containing the paths to the two files. It's important
 	// to note that the file containing our base template must be the *first*
 	// file in the slice.
 
 	// Include the navigation partial in the template files.
-	files := []string{
-		"./ui/html/base.tmpl.html",
-		"./ui/html/partials/nav.tmpl.html",
-		"./ui/html/pages/home.tmpl.html",
-	}
+	// files := []string{
+	// 	"./ui/html/base.tmpl.html",
+	// 	"./ui/html/partials/nav.tmpl.htmrowsl",
+	// 	"./ui/html/pages/home.tmpl.html",
+	// }
 
 	// Use the template.ParseFiles() function to read the template file into a
 	// template set. If there's an error, we log the detailed error message, use
@@ -35,20 +44,20 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	// Use the template.ParseFiles() function to read the files and store the
 	// templates in a template set. Notice that we use ... to pass the contents
 	// of the files slice as variadic arguments.
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		// Because the home handler is now a method agains the application
-		// struct it can access its fields, including the structured logger. we
-		// use this to create a log entry at Error level containing the error
-		// message, also including the request method and URI as attributes to
-		// assist with debugging.
-		// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// ts, err := template.ParseFiles(files...)
+	// if err != nil {
+	// Because the home handler is now a method agains the application
+	// struct it can access its fields, including the structured logger. we
+	// use this to create a log entry at Error level containing the error
+	// message, also including the request method and URI as attributes to
+	// assist with debugging.
+	// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 
-		// use the serverErrorError() helper
-		app.serverError(w, r, err)
-		return
-	}
+	// use the serverErrorError() helper
+	// 	app.serverError(w, r, err)
+	// 	return
+	// }
 
 	// Then we use the Execute() menthod on the template set to write the
 	// template content as the response body. The last parameter to Execute()
@@ -57,15 +66,15 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	// Use the ExecuteTemplate() method to write the content of the "base"
 	// template as the response body.
-	err = ts.ExecuteTemplate(w, "base", nil)
-	if err != nil {
-		// And we also need to update the code here to use the structured logger too.
-		// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// err = ts.ExecuteTemplate(w, "base", nil)
+	// if err != nil {
+	// And we also need to update the code here to use the structured logger too.
+	// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 
-		//  Use the serverError() helper
-		app.serverError(w, r, err)
-	}
+	//  Use the serverError() helper
+	// app.serverError(w, r, err)
+	// }
 
 	// w.Write([]byte("Hello from Snippetbox"))
 }
