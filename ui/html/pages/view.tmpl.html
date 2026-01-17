@@ -1,14 +1,19 @@
 {{define "title"}}Snippet #{{.Snippet.ID}}{{end}}
+
 {{define "main"}}
+    {{with .Snippet}} <!-- so i can use .Title instead of .Snippet.Title -->
+    <!-- So now, between {{with .Snippet}} and the corresponding {{end}} tag, the value of dot
+    is set to .Snippet. Dot essentially becomes the models.Snippet struct instead of the parent
+    templateData struct. -->
     <div class='snippet'>
         <div class='metadata'>
-            <strong>{{.Snippet.Title}}</strong>
-            <span>#{{.Snippet.ID}}</span>
+            <strong>{{.Title}}</strong>
+            <span>#{{.ID}}</span>
         </div>
-        <pre><code>{{.Snippet.Content}}</code></pre>
+        <pre><code>{{.Content}}</code></pre>
         <div class='metadata'>
-            <time>Created: {{.Snippet.Created}}</time>
-            <time>Expires: {{.Snippet.Expires}}</time>
+            <time>Created: {{.Created}}</time>
+            <time>Expires: {{.Expires}}</time>
         </div>
     </div>
 {{end}}
