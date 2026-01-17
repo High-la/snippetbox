@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -22,6 +21,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Use the new render helper.
+	app.render(w, r, http.StatusOK, "home.tmpl.html", templateData{
+		Snippets: snippets,
+	})
+
 	// for _, snippet := range snippets {
 	// 	fmt.Fprintf(w, "%+v\n", snippet)
 	// }
@@ -32,11 +36,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	// Include the navigation partial in the template files.
 
-	files := []string{
-		"./ui/html/base.tmpl.html",
-		"./ui/html/partials/nav.tmpl.html",
-		"./ui/html/pages/home.tmpl.html",
-	}
+	// files := []string{
+	// 	"./ui/html/base.tmpl.html",
+	// 	"./ui/html/partials/nav.tmpl.html",
+	// 	"./ui/html/pages/home.tmpl.html",
+	// }
 
 	// Use the template.ParseFiles() function to read the template file into a
 	// template set. If there's an error, we log the detailed error message, use
@@ -47,20 +51,20 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	// templates in a template set. Notice that we use ... to pass the contents
 	// of the files slice as variadic arguments.
 
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		// Because the home handler is now a method agains the application
-		// struct it can access its fields, including the structured logger. we
-		// use this to create a log entry at Error level containing the error
-		// message, also including the request method and URI as attributes to
-		// assist with debugging.
-		// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
-		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	// ts, err := template.ParseFiles(files...)
+	// if err != nil {
+	// Because the home handler is now a method agains the application
+	// struct it can access its fields, including the structured logger. we
+	// use this to create a log entry at Error level containing the error
+	// message, also including the request method and URI as attributes to
+	// assist with debugging.
+	// app.logger.Error(err.Error(), "method", r.Method, "uri", r.URL.RequestURI())
+	// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 
-		// use the serverErrorError() helper
-		app.serverError(w, r, err)
-		return
-	}
+	// use the serverErrorError() helper
+	// 	app.serverError(w, r, err)
+	// 	return
+	// }
 
 	// Then we use the Execute() menthod on the template set to write the
 	// template content as the response body. The last parameter to Execute()
@@ -83,15 +87,15 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	// Create an instance of a templateData struct holding slice of the
 	// snippets.
-	data := templateData{
-		Snippets: snippets,
-	}
+	// data := templateData{
+	// 	Snippets: snippets,
+	// }
 
-	// Pass in the templateData struct when executing the template.
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, r, err)
-	}
+	// // Pass in the templateData struct when executing the template.
+	// err = ts.ExecuteTemplate(w, "base", data)
+	// if err != nil {
+	// 	app.serverError(w, r, err)
+	// }
 }
 
 // change the signature of the snippetView handler so it is defined as a method
@@ -116,37 +120,42 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Use the new render helper.
+	app.render(w, r, http.StatusOK, "view.tmpl.html", templateData{
+		Snippet: snippet,
+	})
+
 	// Write the snippet data as a plain-text to HTTP response body
 	// fmt.Fprintf(w, "%+v", snippet)
 
 	// Intitialize a slice containning the paths to the view.tmpl file,
 	// plus the base layout and navigation partial that we made earlier.
-	files := []string{
-		"./ui/html/base.tmpl.html",
-		"./ui/html/partials/nav.tmpl.html",
-		"./ui/html/pages/view.tmpl.html",
-	}
+	// files := []string{
+	// 	"./ui/html/base.tmpl.html",
+	// 	"./ui/html/partials/nav.tmpl.html",
+	// 	"./ui/html/pages/view.tmpl.html",
+	// }
 
 	// PArse the template files...
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
+	// ts, err := template.ParseFiles(files...)
+	// if err != nil {
+	// 	app.serverError(w, r, err)
+	// 	return
+	// }
 
 	// Create an instance of a templateData struct holding the snippet data.
-	data := templateData{
-		Snippet: snippet,
-	}
+	// data := templateData{
+	// 	Snippet: snippet,
+	// }
 
 	// And then execute them. Notice how we are pasing in the snippet
 	// data (a models.Snippet struct) as the final parameter ?
 
 	// Pass in the templateData struct when executing the template.
-	err = ts.ExecuteTemplate(w, "base", data)
-	if err != nil {
-		app.serverError(w, r, err)
-	}
+	// err = ts.ExecuteTemplate(w, "base", data)
+	// if err != nil {
+	// 	app.serverError(w, r, err)
+	// }
 }
 
 // Change the signature of the snippetCreate handler so it is defined as a method
