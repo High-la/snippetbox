@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 
 	"github.com/High-la/snippetbox/internal/models"
+	"github.com/High-la/snippetbox/internal/validator"
 )
 
 // Change the signature of the home hander so it is defined as amethod against
@@ -80,16 +79,15 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, "create.tmpl.html", data)
 }
 
-// Define a snippetCreateForm struct to represent the form data and validation
-// errors forthe form fields. Note that all the struct fields are deliberatately
-// exported (i.e start with a capital letter). This is because struct fields
-// must be exported in order to be read by the html/template package when
-// rendering the template.FieldErrors
+// Remove the explicit FieldErrors struct field and instead embed the validator
+// struct. Embedding this means that our snippetCreateForm "inherits" all the
+// fields and methods of our validator struct (including the FieldErrors field)
 type snippetCreateForm struct {
-	Title       string
-	Content     string
-	Expires     int
-	FieldErrors map[string]string
+	Title   string
+	Content string
+	Expires int
+	// FieldErrors map[string]string
+	validator.Validator
 }
 
 // Change the signature of the snippetCreatePost handler so it is defined as a method
@@ -116,39 +114,28 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	// Create an instance of the snippetCreateForm struct containning the values
 	// from the form and an empty map for any validation errors.
 	form := snippetCreateForm{
-		Title:       r.PostForm.Get("title"),
-		Content:     r.PostForm.Get("content"),
-		Expires:     expires,
-		FieldErrors: map[string]string{},
+		Title:   r.PostForm.Get("title"),
+		Content: r.PostForm.Get("content"),
+		Expires: expires,
+		// Remove the FieldErrors assignment from here.
+		// FieldErrors: map[string]string{},
 	}
 
-	// Update the validation checks so that they operate on the snippetCreateForm
-	// instance.
+	// Because the Validator struct is embedded by the snippetCreateForm struct
+	// we call CheckField() directly on it to execute our validation checks.
+	// CheckField() will add the provided key and error message to the
+	// FieldErrors map if the check does not evaluate to true. For example, in
+	// the first line here we "check that the form.Title field is not blank". in
+	// the second, we "check that the form.Title field has a max char
+	// length of 100" and so on.
+	form.CheckField(validator.NotBlank(form.Title), "title", "his field cannot be blank")
+	form.CheckField(validator.MaxChars(form.Title, 100), "title", "This field cannot be more than 100 characters long")
+	form.CheckField(validator.NotBlank(form.Content), "content", "This field cannot be blank")
+	form.CheckField(validator.PermittedValue(form.Expires, 1, 7, 365), "expires", "This field must equal 1, 7 or 365")
 
-	if strings.TrimSpace(form.Title) == "" {
-		form.FieldErrors["title"] = "This field cannot be blank"
-	} else if utf8.RuneCountInString(form.Title) > 100 {
-		form.FieldErrors["title"] = "This field cannot be more than 100 characters long "
-	}
-
-	// Check that the Content value isn't blank.
-	if strings.TrimSpace(form.Content) == "" {
-		form.FieldErrors["content"] = "This field cannot be blank"
-	} else if utf8.RuneCountInString(form.Content) > 250 {
-		form.FieldErrors["title"] = "This field cannot be more than 250 characters long "
-	}
-
-	// Check the expires value matches one of the permitted
-	// values (1, 7, 365)
-	if form.Expires != 1 && form.Expires != 7 && form.Expires != 365 {
-		form.FieldErrors["expires"] = "This field must be 1, 7 or 365"
-	}
-
-	// If there are any validation errors, then re-display the create.tmpl template,
-	// passing in the snippetCreateForm instance as dynamic data in the form
-	// field. Note that we use the HTTP status code 400 Unprocessable Entity
-	// when sending the response to indicate that there was a validation error.
-	if len(form.FieldErrors) > 0 {
+	// Use the valid() method to see if any of the checks failed. If they did
+	// then re-render the template passing in the form in the same way as before.
+	if !form.Valid() {
 		data := app.newTemplateData(r)
 		data.Form = form
 		app.render(w, r, http.StatusUnprocessableEntity, "create.tmpl.html", data)
