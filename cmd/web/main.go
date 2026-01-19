@@ -19,6 +19,8 @@ import (
 	// Here’s how:
 	// Import models package
 	"github.com/High-la/snippetbox/internal/models"
+
+	"github.com/go-playground/form/v4"
 )
 
 // Add a snippets field to the application struct. This will allow us to
@@ -27,10 +29,13 @@ import (
 // Define an application struct to hold the application-wide dependencies for the
 // web application. For now we'll only include the structured logger, but we'll
 // add more to this as the build progresses.
+
+// Add a formDecoder field to hold a pointer to a form.Decoder instance.
 type application struct {
 	logger        *slog.Logger
 	snippets      *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -68,8 +73,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	//Initialize a models.SnippetModel instance containing the connection pool
-	// and add it to the application dependencies.
+	// Initialize a decoder instance...
+	formDecoder := form.NewDecoder()
 
 	// Initialize a new instance of our application struct, containinig the
 	// dependencies (for now, the structured logger).
@@ -79,6 +84,7 @@ func main() {
 		logger:        logger,
 		snippets:      &models.SnippetModel{DB: db},
 		templateCache: templateCache,
+		formDecoder:   formDecoder,
 	}
 
 	// os.Getenv() only reads from already setted system environment variables.

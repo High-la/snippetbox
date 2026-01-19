@@ -3,6 +3,7 @@ module github.com/High-la/snippetbox
 go 1.25.5
 
 require (
+	github.com/go-playground/form/v4 v4.3.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/joho/godotenv v1.5.1
 	github.com/justinas/alice v1.2.0
