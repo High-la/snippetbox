@@ -27,10 +27,13 @@ var functions = template.FuncMap{
 // to it as the build progresses.
 
 // Include a snippets field in the templateData struct.
+
+// Add a Form field with the type "any".
 type templateData struct {
 	CurrentYear int
 	Snippet     models.Snippet
 	Snippets    []models.Snippet
+	Form        any
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
