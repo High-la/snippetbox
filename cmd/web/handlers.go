@@ -64,7 +64,10 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 // Change the signature of the snippetCreate handler so it is defined as a method
 // against *application.
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Display a form for creating a new snippet..."))
+
+	data := app.newTemplateData(r)
+
+	app.render(w, r, http.StatusOK, "create.tmpl.html", data)
 }
 
 // Change the signature of the snippetCreatePost handler so it is defined as a method
