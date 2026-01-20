@@ -136,6 +136,10 @@ func main() {
 		// could pass slog.LevelWarn aas the final parameter.
 		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
 		TLSConfig: tlsConfig,
+		// Add Idle, Read and Write timeouts to the server.
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	// Use the Info() method to log the starting server message at Info severity
