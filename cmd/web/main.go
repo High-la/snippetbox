@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
@@ -113,8 +114,18 @@ func main() {
 	godotenv.Load() // Load .env file
 	addr := os.Getenv("SNIPPETBOX_ADDR")
 
+	// Initialize a tls.Config struct to hold the non-default TLS settings we
+	// want the server to use. In this case the only thing that we're changing
+	// is the curve preferences value, so that only elliptic curves with
+	// assembly implimentations are used.
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
 	// Initialize a new http.Server struct. We set the Addr and Handler fields so
 	// that the server uses the same network address and routes as before.
+
+	// Set the server's TLSConfig field to use the tlsConfig we just
+	// created
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: app.routes(),
@@ -123,7 +134,8 @@ func main() {
 		// log entries at Error level, and assign it to the Error log field. IF
 		// u would prefer to log the server errors at Warn level instead, u
 		// could pass slog.LevelWarn aas the final parameter.
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		TLSConfig: tlsConfig,
 	}
 
 	// Use the Info() method to log the starting server message at Info severity
