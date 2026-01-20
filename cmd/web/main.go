@@ -113,6 +113,12 @@ func main() {
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: app.routes(),
+
+		// Create a *log.Logger from our structured logger handler, which writes
+		// log entries at Error level, and assign it to the Error log field. IF
+		// u would prefer to log the server errors at Warn level instead, u
+		// could pass slog.LevelWarn aas the final parameter.
+		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	// Use the Info() method to log the starting server message at Info severity
