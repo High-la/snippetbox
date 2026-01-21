@@ -35,6 +35,8 @@ type templateData struct {
 	Snippets    []models.Snippet
 	Form        any
 	Flash       string // Add a Flash field to the templateData struct.
+	// Add an IsAuthenticated field to the templateData struct.
+	IsAuthenticated bool
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
