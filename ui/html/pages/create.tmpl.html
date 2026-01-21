@@ -1,6 +1,8 @@
 {{define "title"}}Create a New Snippet{{end}}
 {{define "main"}}
 <form action='/snippet/create' method='POST'>
+    <!-- Include the CSRFtoken -->
+     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
     <div>
         <!-- create.tmpl.html:8:21: executing \"main\" at <.Form.FieldErrors.title>: can't evaluate field FieldErrors in type interface {}" -->
         <label>Title:</label>

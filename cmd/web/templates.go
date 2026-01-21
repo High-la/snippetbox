@@ -37,6 +37,7 @@ type templateData struct {
 	Flash       string // Add a Flash field to the templateData struct.
 	// Add an IsAuthenticated field to the templateData struct.
 	IsAuthenticated bool
+	CSRFToken       string // Add a CSRFToken field.
 }
 
 func newTemplateCache() (map[string]*template.Template, error) {
