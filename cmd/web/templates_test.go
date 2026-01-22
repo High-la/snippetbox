@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"github.com/High-la/snippetbox/internal/assert"
 )
 
 func TestHumanDate(t *testing.T) {
@@ -43,10 +45,27 @@ func TestHumanDate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			hd := humanDate(tt.tm)
 
-			if hd != tt.want {
-				t.Errorf("got %q; want %q", hd, tt.want)
-			}
+			// Use the new assert.Equal() helper to compare the expected and
+			// actual values.
+			assert.Equal(t, hd, tt.want)
 		})
 	}
 
+	// .............................................
+	// 	Sub-tests without a table of test cases
+
+	// It’s important to point out that you don’t need to use sub-tests in conjunction with table-
+	// driven tests (like we have done so far in this chapter). It’s perfectly valid to execute sub-
+	// tests by calling t.Run() consecutively in your test functions, similar to this:
+	// func TestExample(t *testing.T) {
+	// t.Run("Example sub-test 1", func(t *testing.T) {
+	// // Do a test.
+	// })
+	// t.Run("Example sub-test 2", func(t *testing.T) {
+	// // Do another test.
+	// })
+	// t.Run("Example sub-test 3", func(t *testing.T) {
+	// // And another...
+	// })
+	// }
 }
