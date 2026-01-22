@@ -8,5 +8,5 @@ import "embed"
 // referenced by the global variable Files.
 // here embeds the dir ui/static
 
-//go:embed "static"
+//go:embed "html" "static"
 var Files embed.FS
