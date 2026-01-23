@@ -75,26 +75,20 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	// Initialize a new buffer.
 	buf := new(bytes.Buffer)
 
-	// Execute the template set and write the response body. Again if there
-	// is any error we call the serverError() helper.
-
-	// Write the template to the buffer, instead of straight to the
-	// http.ResponseWriter. If there's an error, call our serverError() helper
-	// and then return.
-	err := ts.ExecuteTemplate(w, "base", data)
+	// Execute the template set and write the response body into the buffer.
+	// If there's an error, call our serverError() helper and return so we
+	// don't attempt to write the response twice which would cause a
+	// superfluous WriteHeader call.
+	err := ts.ExecuteTemplate(buf, "base", data)
 	if err != nil {
 		app.serverError(w, r, err)
+		return
 	}
 
 	// Write out the provided HTTP status code ('200 OK', '400 BAD REQUEST etc').
-
-	// If the template is written to the buffer without any errors, we are safe
-	// to go ahead and write the HTTP status code to http.ResponseWritter.
 	w.WriteHeader(status)
 
-	// Write the contents of the buffer to the http.ResponseWrite. Note: this
-	// is another time where we pass our http.ResponseWrite to a function that
-	// takes an io.Write.
+	// Write the contents of the buffer to the http.ResponseWriter.
 	buf.WriteTo(w)
 
 }
