@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"testing"
 	"time"
@@ -16,6 +17,44 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 )
+
+// Create a postForm method for sending POST requests to the test server. The
+// final parameter to this method is a url.Values object which can contain any
+// form data that you want to send in the request body.
+func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, string) {
+
+	// Create a new POST request with the form data encoded in the body.
+	req, err := http.NewRequest(http.MethodPost, ts.URL+urlPath, bytes.NewBufferString(form.Encode()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add the correct Content-Type header.
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	req.Header.Set("Referer", ts.URL+urlPath)
+
+	// Send the request using the test server client.
+	rs, err := ts.Client.Do(req)
+	// fmt.Println("here", rs.Request.Method)
+	// fmt.Println("here 2", rs.Request.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Read the response body from the test server.
+	defer rs.Body.Close()
+	body, err := io.ReadAll(rs.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body = bytes.TrimSpace(body)
+	// fmt.Println("here 3", string(body))
+
+	// Return the response status, headers and body.
+	return rs.StatusCode, rs.Header, string(body)
+}
 
 // Define a regular expression which captures the CSRF token value from the
 // HTML for our user signup page.
@@ -67,6 +106,7 @@ func newTestApplication(t *testing.T) *application {
 // Define a custome testServer type which embeds a httptest.Server instance.
 type testServer struct {
 	*httptest.Server
+	Client *http.Client
 }
 
 // Create a newTestServer helper which initalizes and returns a new instance
@@ -82,20 +122,25 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 		t.Fatal(err)
 	}
 
-	// Add the cookie jar to the test server client. Any response cookies will
-	// now be stored and sent with subsequent requests when using this client.
-	ts.Client().Jar = jar
+	// Create a custom HTTP client and add the cookie jar to it. Any response
+	// cookies will now be stored and sent with subsequent requests when using
+	// this client.
+	client := ts.Client()
+	client.Jar = jar
 
 	// Disable redirect-following for the test server client by setting a custom
 	// CheckRedirect function. This function will be called whenever a 3xx
 	// response is received by the client, and by always returning a
 	// http.ErrUseLastResponse error it forces the client to immediately return
 	// the received response.
-	ts.Client().CheckRedirect = func(res *http.Request, via []*http.Request) error {
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 
-	return &testServer{ts}
+	return &testServer{
+		Server: ts,
+		Client: client,
+	}
 }
 
 // Implement a get() method on our custom testServer type. This makes a GET
@@ -103,7 +148,8 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 // response status code, headers and body.
 func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, string) {
 
-	rs, err := ts.Client().Get(ts.URL + urlPath)
+	rs, err := ts.Client.Get(ts.URL + urlPath)
+
 	if err != nil {
 		t.Fatal(err)
 	}
