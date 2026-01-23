@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type SnippetModelInterface interface {
+	Insert(title string, content string, expires int) (int, error)
+	Get(id int) (Snippet, error)
+	Latest() ([]Snippet, error)
+}
+
 // Remember: The internal directory is being used to hold ancillary non-application-
 // specific code, which could potentially be reused. A database model which could be
 // used by other applications in the future (like a command line interface application) fits
