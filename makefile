@@ -67,8 +67,9 @@ test-unit:
 
 .PHONY: test-integration
 test-integration:
-	@echo ">> Running unit + integration tests"
-	$(GOTEST) ./...
+	@echo ">> Running integration tests (MySQL)"
+	$(GOTEST) ./... -tags=integration -count=1 	
+# -count=1 means no cache 
 
 
 # -------------------------------
