@@ -46,14 +46,23 @@ vet:
 	$(GOVET) ./...
 
 # -------------------------------
-# Tests
+# Unit Tests (NO DB)
 # -------------------------------
 
 .PHONY: test
 test:
-	@echo ">> Running tests"
+	@echo ">> Running unit tests"
 	$(GOTEST) ./...
 
+# -------------------------------
+# Integration Tests (DB)
+# -------------------------------
+
+.PHONY: test-integration
+test-integration:
+	@echo ">> Running integration tests"
+	$(GOTEST) -tags=integration ./...
+	
 # -------------------------------
 # Tests with coverage (CI-friendly)
 # -------------------------------

@@ -29,5 +29,5 @@ jobs:
                 key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
 
             # 4 Run CI checks
-            - name: Step 4 Run CI    
+            - name: Step 4 Run CI (unit tests only)   
               run: make ci
