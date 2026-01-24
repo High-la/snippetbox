@@ -18,6 +18,8 @@ tls/
 *.dll
 *.so
 *.dylib
+/bin
+bin
 
 # Test binary, built with `go test -c`
 *.test
