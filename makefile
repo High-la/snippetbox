@@ -68,6 +68,7 @@ test-unit:
 .PHONY: test-integration
 test-integration:
 	@echo ">> Running integration tests (MySQL)"
+	DB_DSN="testuser:testpass@tcp(127.0.0.1:3306)/snippetbox_test?parseTime=true" \
 	$(GOTEST) ./... -tags=integration -count=1 	
 # -count=1 means no cache 
 

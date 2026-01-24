@@ -15,10 +15,10 @@ jobs:
                 ports:
                     - 3306:3306
                 env:
-                    MYSQL_DATABASE: ${{ secrets.DB_NAME }}
-                    MYSQL_USER: ${{ secrets.DB_USER }}
-                    MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
-                    MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+                    MYSQL_DATABASE: snippetbox_test
+                    MYSQL_USER: testuser
+                    MYSQL_PASSWORD: testpass
+                    MYSQL_ROOT_PASSWORD: rootpass
                     options: >-
                         --health-cmd="mysqladmin ping -h 127.0.0.1"
                         --health-interval=10s
@@ -44,17 +44,18 @@ jobs:
             - name: Wait for MySQL
               run: |
                 for i in {1..20}; do
-                    mysqladmin ping -h 127.0.0.1 -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} && break
-                    sleep 3
+                    mysqladmin ping -h 127.0.0.1 -u testuser -ptestpass && break
+                    sleep 2
                 done
 
-            - name: Run migrations
-              env:
-                DB_DSN: "${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@tcp(127.0.0.1:3306)/${{ secrets.DB_NAME }}?parseTime=true"
+            - name: Run DB migrations
               run: |
-                mysql -h 127.0.0.1 -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} ${{ secrets.DB_NAME }} < ./migrations/schema.sql
+                mysql -h 127.0.0.1 \
+                    -u testuser \
+                    -ptestpass \
+                    snippetbox_test < ./internal/models/testdata/setup.sql
 
             - name: Run integration tests
               env:
-                DB_DSN: "${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@tcp(127.0.0.1:3306)/${{ secrets.DB_NAME }}?parseTime=true"
+                DB_DSN: "testuser:testpass@tcp(127.0.0.1:3306)/snippetbox_test?parseTime=true"
               run: make test-integration    
