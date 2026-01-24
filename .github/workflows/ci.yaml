@@ -171,7 +171,7 @@ jobs:
             username: ${{ secrets.VPS_USER }}
             key: ${{ secrets.VPS_SSH_KEY }}
             source: ./bin/*   # <- correct local path
-            target: /opt/    # <- remote path
+            target: ~/snippetbox/   # <- user home remote path, writable
             debug: true
 
         # 4. Make binary executable & restart
