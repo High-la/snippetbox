@@ -107,3 +107,24 @@ clean:
 
 .PHONY: ci
 ci: fmt vet test-unit build
+
+# -------------------------------
+# Packaging
+# -------------------------------
+
+.PHONY: build-linux
+build-linux:
+	@echo ">> Building Linux production binary"
+
+# CGO_ENABLED=0 → static binary
+	CGO_ENABLED=0 \
+
+# GOOS=linux → matches VPS, build for linux
+	GOOS=linux \
+	GOARCH=amd64 \
+	
+# -s -w → smaller binary
+	$(GOBUILD) -ldflags="-s -w" \
+	-o $(BIN_DIR)/$(APP_NAME) ./$(CMD_DIR)
+
+
