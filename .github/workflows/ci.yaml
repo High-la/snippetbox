@@ -1,0 +1,189 @@
+name: Snippetbox CI/CD
+
+# Trigger on push to main branch
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # -------------------------------
+  # Job 1: Unit Tests (CI)
+  # -------------------------------
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # 3. Cache Go modules
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+
+      # 4. Run unit tests (short tests only)
+      - name: Run Unit Tests
+        run: make test-unit
+
+  # -------------------------------
+  # Job 2: Integration Tests (MySQL)
+  # -------------------------------
+  integration-tests:
+    name: Integration Tests (MySQL)
+    needs: unit-tests  # Run only after unit tests succeed
+    runs-on: ubuntu-latest
+
+    services:
+      # MySQL container for integration tests
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_DATABASE: snippetbox_test
+          MYSQL_USER: testuser
+          MYSQL_PASSWORD: testpass
+          MYSQL_ROOT_PASSWORD: rootpass
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # 3. Cache Go modules
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+
+      # 4. Wait for MySQL to be ready
+      - name: Wait for MySQL
+        run: |
+          for i in {1..20}; do
+            mysqladmin ping -h 127.0.0.1 -u testuser -ptestpass && break
+            sleep 2
+          done
+
+      # 5. Run integration tests
+      - name: Run Integration Tests
+        env:
+          DB_DSN: "testuser:testpass@tcp(127.0.0.1:3306)/snippetbox_test?parseTime=true"
+        run: make test-integration
+
+  # -------------------------------
+  # Job 3: Package / Build
+  # -------------------------------
+  package-linux-binary:
+    name: Package Linux Binary
+    needs: integration-tests  # Run after integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - uses: actions/checkout@v4
+
+      # 2. Setup Go
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # 3. Cache Go modules
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
+
+      # 4. Build production binary
+      - name: Build Binary
+        run: make build-linux
+
+      # 5. Upload artifact for deploy job
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snippetbox # artifact name not dir name
+          path: ./bin/snippetbox # actual binary file
+
+  # -------------------------------
+  # Job 4: Deploy to VPS
+  # -------------------------------
+  deploy:
+    name: Deploy to VPS
+    needs: package-linux-binary  # Run after packaging
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download artifact from previous job
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: snippetbox # artifact name not dir name
+          path: ./bin  # <- folder, not full file path
+
+      # 2.  Verify artifact files
+      - name: Verify downloaded artifact files
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files in ./bin:"
+          ls -l ./bin
+          echo "Checking if binary exists:"
+          if [ -f ./bin/snippetbox ]; then
+            echo "✓ Binary found at ./bin/snippetbox"
+            ls -lh ./bin/snippetbox
+          else
+            echo "✗ Binary NOT found!"
+            exit 1
+          fi
+
+      # 3. Upload binary to VPS and make executable & restart service
+      - name: Upload binary to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+            host: ${{ secrets.VPS_HOST }}
+            username: ${{ secrets.VPS_USER }}
+            key: ${{ secrets.VPS_SSH_KEY }}
+            source: ./bin/*   # <- correct local path
+            target: /opt/    # <- remote path
+            debug: true
+
+        # 4. Make binary executable & restart
+      - name: Restart service on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+            host: ${{ secrets.VPS_HOST }}
+            username: ${{ secrets.VPS_USER }}
+            key: ${{ secrets.VPS_SSH_KEY }}
+            script: |
+                sudo chmod +x /opt/snippetbox
+                sudo systemctl daemon-reload
+                sudo systemctl restart snippetbox
+
+# 

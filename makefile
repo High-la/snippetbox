@@ -122,9 +122,10 @@ build-linux:
 # GOOS=linux → matches VPS, build for linux
 	GOOS=linux \
 	GOARCH=amd64 \
-	
+
 # -s -w → smaller binary
 	$(GOBUILD) -ldflags="-s -w" \
 	-o $(BIN_DIR)/$(APP_NAME) ./$(CMD_DIR)
+# 	-o $(BIN_DIR)/$(APP_NAME)-binary-linux-amd64 ./$(CMD_DIR)
 
 
