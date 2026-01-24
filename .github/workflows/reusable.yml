@@ -1,0 +1,52 @@
+# This workflow contains common reusable steps for all CI/CD jobs
+# It can be called by other workflows using "workflow_call"
+name: Reusable Steps
+
+on:
+  workflow_call:
+    inputs:
+      setup-go:          # whether to setup Go
+        required: false
+        type: boolean
+      cache-modules:     # whether to cache Go modules
+        required: false
+        type: boolean
+    secrets:
+      VPS_HOST:
+        required: false
+      VPS_USER:
+        required: false
+      VPS_SSH_KEY:
+        required: false
+
+jobs:
+  common:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -------------------------------
+      # Step 1: Checkout repository
+      # -------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------------------------
+      # Step 2: Setup Go
+      # -------------------------------
+      - name: Setup Go
+        if: ${{ inputs.setup-go == true }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # -------------------------------
+      # Step 3: Cache Go modules
+      # -------------------------------
+      - name: Cache Go modules
+        if: ${{ inputs.cache-modules == true }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}

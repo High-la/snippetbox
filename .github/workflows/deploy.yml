@@ -1,29 +1,42 @@
+# Workflow: Deploy to VPS
+# Triggered only after Package workflow completes successfully
 name: Deploy
 
 on:
   workflow_run:
     workflows: ["Package"]
-    types: [completed]
+    types:
+      - completed
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------------
+      # Step 1: Download built binary artifact
+      # -------------------------------
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: snippetbox-linux
+          name: snippetbox-binary-linux
+          path: ./bin
 
+      # -------------------------------
+      # Step 2: Upload binary to VPS
+      # -------------------------------
       - name: Upload binary to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: snippetbox
+          source: bin/snippetbox
           target: /opt/snippetbox/
 
+      # -------------------------------
+      # Step 3: Restart service on VPS
+      # -------------------------------
       - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
         with:

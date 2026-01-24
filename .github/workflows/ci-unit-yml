@@ -1,0 +1,20 @@
+# Workflow: Unit Tests only
+# Runs all unit tests on push to main branch
+name: CI - Unit Tests
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/reusable.yml   # call reusable steps
+    with:
+      setup-go: true
+      cache-modules: true
+    steps:
+      # -------------------------------
+      # Step 4: Run Unit Tests
+      # -------------------------------
+      - name: Run Unit Tests
+        run: make test-unit
