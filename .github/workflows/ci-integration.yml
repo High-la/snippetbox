@@ -48,12 +48,12 @@ jobs:
                     sleep 2
                 done
 
-            - name: Run DB migrations
-              run: |
-                mysql -h 127.0.0.1 \
-                    -u testuser \
-                    -ptestpass \
-                    snippetbox_test < ./internal/models/testdata/setup.sql
+            # - name: Run DB migrations
+            #   run: |
+            #     mysql -h 127.0.0.1 \
+            #         -u testuser \
+            #         -ptestpass \
+            #         snippetbox_test < ./internal/models/testdata/setup.sql
 
             - name: Run integration tests
               env:
