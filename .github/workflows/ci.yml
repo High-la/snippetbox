@@ -28,6 +28,6 @@ jobs:
                     ~/.cache/go-build
                 key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
 
-            # 4 Run CI checks
+            # 4 Run Stage 2 CI
             - name: Step 4 Run CI (unit tests only)   
               run: make ci

@@ -25,14 +25,20 @@ DB_PORT=3306
 # -------------------------------
 
 .PHONY: all
-all: test build
+all: ci
 
 # -------------------------------
-# Formatting
+# Formatting (Check only - CI safe)
 # -------------------------------
 
 .PHONY: fmt
 fmt:
+	@echo ">> Checking Go formatting"
+	test -z "$$($(GOFMT) -l .)"
+
+# Optional: developer-only formatter
+.PHONY: fmt-fix
+fmt-fix:
 	@echo ">> Formatting Go files"
 	$(GOFMT) -w .
 
@@ -46,23 +52,25 @@ vet:
 	$(GOVET) ./...
 
 # -------------------------------
-# Unit Tests (NO DB)
+# Run unit tests only (NO DB)
 # -------------------------------
 
-.PHONY: test
-test:
-	@echo ">> Running unit tests"
-	$(GOTEST) ./...
+.PHONY: test-unit
+test-unit:
+	@echo ">> Running unit tests only"
+	$(GOTEST) ./... -short
 
 # -------------------------------
-# Integration Tests (DB)
+# Run all tests (unit + integration(DB) tests)
+# (NOT USED in Stage 2 CI)
 # -------------------------------
 
 .PHONY: test-integration
 test-integration:
-	@echo ">> Running integration tests"
-	$(GOTEST) -tags=integration ./...
-	
+	@echo ">> Running unit + integration tests"
+	$(GOTEST) ./...
+
+
 # -------------------------------
 # Tests with coverage (CI-friendly)
 # -------------------------------
@@ -92,8 +100,8 @@ clean:
 	rm -rf $(BIN_DIR)
 
 # -------------------------------
-# CI (used by GitHub Actions)
+# CI (Stage 2)
 # -------------------------------
 
 .PHONY: ci
-ci: fmt vet test build
+ci: fmt vet test-unit build
