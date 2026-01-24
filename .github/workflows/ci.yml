@@ -10,17 +10,17 @@ jobs:
 
         steps:
             # 1 Get source code
-            - name: Checkout repository
+            - name: Step 1 Checkout repository
               uses: actions/checkout@v4
 
             # 2 Setup Go
-            - name: Setup Go
+            - name: Step 2 Setup Go
               uses: actions/setup-go@v5  
               with:
                 go-version: '1.25'
 
             # 3 Cache Go modules
-            - name: Cache Go modules
+            - name: Step 3 Cache Go modules
               uses: actions/cache@v4
               with:
                 path: |
@@ -29,4 +29,5 @@ jobs:
                 key: go-${{ runner.os }}-${{ hashFiles('**/go.sum') }}
 
             # 4 Run CI checks
-                run: make ci
+            - name: Step 4 Run CI    
+              run: make ci
