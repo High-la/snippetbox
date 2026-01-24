@@ -18,7 +18,7 @@ func newTestDB(t *testing.T) *sql.DB {
 	// in one db.Exec() call.
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
-		t.Fatal("DB_DSN not set", err)
+		t.Fatal("DB_DSN not set")
 	}
 
 	// Ensure multiStatements=true for setup/teardown
