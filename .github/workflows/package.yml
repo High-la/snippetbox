@@ -1,4 +1,3 @@
-# Workflow: Build Linux binary and upload artifact
 name: Package
 
 on:
@@ -6,24 +5,30 @@ on:
     branches: [main]
 
 jobs:
+  # 1. Setup Go (from reusable)
   setup:
     uses: ./.github/workflows/reusable.yml
     with:
       setup-go: true
       cache-modules: true
 
+  # 2. Build Linux binary
   build:
-    needs: setup
+    needs: setup        # Wait until setup is done
     runs-on: ubuntu-latest
+
     steps:
+      # Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Build production binary
       - name: Build Linux Binary
         run: make build-linux
 
+      # Upload artifact (make sure name matches download)
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: snippetbox-binary-linux
+          name: snippetbox-binary-linux  # MUST match download
           path: bin/snippetbox
