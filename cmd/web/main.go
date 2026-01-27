@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -49,9 +50,32 @@ func main() {
 	// --------------------
 	// Database
 	// --------------------
-	dsn := os.Getenv("SNIPPETBOX_DB_DSN")
-	db, err := openDB(dsn)
+	// Don't ever reorder the "os.Getenv" block
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true",
+		os.Getenv("SNIPPETBOX_DB_USER"),     // user
+		os.Getenv("SNIPPETBOX_DB_PASSWORD"), // password
+		os.Getenv("SNIPPETBOX_DB_HOST"),     // host
+		os.Getenv("SNIPPETBOX_DB_PORT"),     // port
+		os.Getenv("SNIPPETBOX_DB_NAME"),     // database
+	)
+
+	fmt.Println("DSN:", dsn)
+
+	var db *sql.DB
+	var err error
+	maxAttempts := 10
+	for i := 1; i <= maxAttempts; i++ {
+
+		db, err = openDB(dsn)
+		if err == nil {
+			break
+		}
+		log.Printf("DB not ready, attempt %d/%d: %v", i, maxAttempts, err)
+		time.Sleep(3 * time.Second)
+	}
 	if err != nil {
+		log.Fatalf("Could not connect to database: %v", err)
 		logger.Error(err.Error())
 		os.Exit(1)
 	}

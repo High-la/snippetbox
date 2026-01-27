@@ -20,3 +20,10 @@ INSERT INTO users (name, email, hashed_password, created) VALUES (
 '$2a$12$NuTjWXm3KKntReFwyBVHyuf/to.HEwTy.eS206TNfkGfr6HzGJSWG',
 '2022-01-01 09:18:24'
 );
+
+CREATE TABLE sessions (
+token CHAR(43) PRIMARY KEY,
+data BLOB NOT NULL,
+expiry TIMESTAMP(6) NOT NULL
+);
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
