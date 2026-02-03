@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - "4000:4000"
+      - "52100:52100"
     depends_on:
       - db
     networks:
