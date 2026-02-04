@@ -24,12 +24,16 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-# 2 JOB: Sync Configuration Files (docker-compose)
-  sync-configs:
+# 2 JOB: Deploy
+  deploy:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Copy docker-compose.yml to VPS
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # We use a simple shell-based SCP to avoid the 'tar: empty archive' issue
+      - name: Copy docker-compose.yml to VPS via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -37,14 +41,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "./docker-compose.yml"
           target: "/srv/www/snippetbox"
-          strip_components: 0
-
-# 3 JOB: Execute Deployment on VPS
-  deploy:
-    runs-on: ubuntu-latest
-    needs: sync-configs
-    steps:
-      - name: Deploy to VPS via SSH
+          overwrite: true
+      #.    
+      - name: Execute Remote Commands via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
