@@ -40,11 +40,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # Using Debian 12 Distroless for maximum security (no shell/vulnerabilities)
 FROM gcr.io/distroless/static-debian12
 
-# Remove default Nginx config
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Copy custom Nginx config
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Set working directory
 WORKDIR /app 
