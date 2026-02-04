@@ -35,8 +35,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.yml"
+          source: "./docker-compose.yml"
           target: "/srv/www/snippetbox"
+          strip_components: 0
 
 # 3 JOB: Execute Deployment on VPS
   deploy:
