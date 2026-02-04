@@ -1,0 +1,49 @@
+services:
+  snippetbox-db:
+    image: mysql:8.4
+    container_name: snippetbox-db
+    restart: unless-stopped
+    env_file: 
+      - env/.env.dev
+    environment:
+      # Map the Snippetbox-specific names to the standard MySQL names
+      - MYSQL_USER=${SNIPPETBOX_DB_USER}
+      - MYSQL_PASSWORD=${SNIPPETBOX_DB_PASSWORD}
+      - MYSQL_DATABASE=${SNIPPETBOX_DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    # Use healthcheck to ensure the Go app doesn't crash while DB is booting
+    healthcheck:
+    # Use $$ to ensure the variable is evaluated INSIDE the container
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$SNIPPETBOX_DB_USER", "-p$$SNIPPETBOX_DB_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - snippetbox-db-data:/var/lib/mysql
+    networks:
+      - snippetbox-network  
+
+  snippetbox-app:
+      # In CI/CD, GitHub Actions will build/push this image
+    #image: ghcr.io/high-la/snippetbox:latest
+    build: .  # This tells Docker to use your local Dockerfile
+    container_name: snippetbox-app
+    restart: unless-stopped
+
+    env_file: 
+      - env/.env.dev
+    ports:
+      # Expose only the app port to the host for your Reverse Proxy
+      - "52100:52100"
+    depends_on:
+      snippetbox-db:
+        condition: service_healthy
+    networks:
+      - snippetbox-network
+
+networks:
+  snippetbox-network:
+    driver: bridge
+
+volumes:
+  snippetbox-db-data: 

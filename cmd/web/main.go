@@ -51,14 +51,18 @@ func main() {
 	// Database
 	// --------------------
 	// Don't ever reorder the "os.Getenv" block
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		os.Getenv("SNIPPETBOX_DB_USER"),     // user
-		os.Getenv("SNIPPETBOX_DB_PASSWORD"), // password
-		os.Getenv("SNIPPETBOX_DB_HOST"),     // host
-		os.Getenv("SNIPPETBOX_DB_PORT"),     // port
-		os.Getenv("SNIPPETBOX_DB_NAME"),     // database
-	)
+
+	/*
+		dsn := fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?parseTime=true",
+			os.Getenv("SNIPPETBOX_DB_USER"),     // user
+			os.Getenv("SNIPPETBOX_DB_PASSWORD"), // password
+			os.Getenv("SNIPPETBOX_DB_HOST"),     // host
+			os.Getenv("SNIPPETBOX_DB_PORT"),     // port
+			os.Getenv("SNIPPETBOX_DB_NAME"),     // database
+		)
+	*/
+	dsn := os.Getenv("SNIPPETBOX_DB_DSN")
 
 	fmt.Println("DSN:", dsn)
 
@@ -191,7 +195,19 @@ func main() {
 	go func() {
 		logger.Info("starting server", "addr", addr, "env=", os.Getenv("SNIPPETBOX_ENV"))
 
-		err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
+		tlsEnabled := os.Getenv("SNIPPETBOX_TLS_ENABLED") == "true"
+		certFile := os.Getenv("SNIPPBOX_TLS_CERT")
+		keyFile := os.Getenv("SNIPPBOX_TLS_KEY")
+
+		// Start TLS if enabled and files exist
+		if tlsEnabled && fileExists(certFile) && fileExists(keyFile) {
+			logger.Info("TLS enabled, starting HTTPS server")
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			logger.Info("TLS disabled or cert/key not found, starting HTTP server")
+			err = srv.ListenAndServe()
+		}
+
 		if err != nil && err != http.ErrServerClosed {
 			logger.Error("server error", "err", err)
 		}
@@ -237,4 +253,12 @@ func openDB(dsn string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	_, err := os.Stat(path)
+	return err == nil
 }
