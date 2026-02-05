@@ -42,7 +42,7 @@ jobs:
           source: "./docker-compose.yml"
           target: "/srv/www/snippetbox"
           overwrite: true
-      #.    
+      # running    
       - name: Execute Remote Commands via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -56,6 +56,8 @@ jobs:
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
               -u ${{ github.actor }} --password-stdin
             
-            # Pull the new image and restart the containers
+            # Pull the pre-built image from GHCR
             docker compose pull
+
+            # Restart containers using the .env file 
             docker compose up -d

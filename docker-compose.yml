@@ -25,8 +25,8 @@ services:
 
   snippetbox-app:
       # In CI/CD, GitHub Actions will build/push this image
-    #image: ghcr.io/high-la/snippetbox:latest
-    build: .  # This tells Docker to use your local Dockerfile
+    image: ghcr.io/high-la/snippetbox:latest
+    # build: .  # This tells Docker to use your local Dockerfile
     container_name: snippetbox-app
     restart: unless-stopped
 
