@@ -1,0 +1,63 @@
+name: Snippetbox CI/CD
+
+on:
+  push:
+    branches: [ main, dev ]
+
+jobs:
+  # 1 JOB: Build and Push the Docker Image
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} --password-stdin
+
+      - name: Build and Push Image
+        run: |
+          # We use the lowercase repository name for the image tag
+          IMAGE_NAME=ghcr.io/high-la/snippetbox:latest
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+# 2 JOB: Deploy
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # We use a simple shell-based SCP to avoid the 'tar: empty archive' issue
+      - name: Copy docker-compose.yml to VPS via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "./docker-compose.yml"
+          target: "/srv/www/snippetbox"
+          overwrite: true
+      # running    
+      - name: Execute Remote Commands via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /srv/www/snippetbox
+            
+            # Login to GHCR on the VPS so it can pull the image
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io \
+              -u ${{ github.actor }} --password-stdin
+            
+            # Pull the pre-built image from GHCR
+            docker compose pull
+
+            # Restart containers using the .env file 
+            docker compose up -d

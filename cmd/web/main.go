@@ -1,43 +1,29 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
-	"flag"
+	"fmt"
 	"html/template"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/joho/godotenv"
 
-	_ "github.com/go-sql-driver/mysql" // New import
-	//
-	//	To use this model in our handlers we need to establish a new SnippetModel struct in our
-	//
-	// main() function and then inject it as a dependency via the application struct — just like we
-	// have with our other dependencies.
-	// Here’s how:
-	// Import models package
 	"github.com/High-la/snippetbox/internal/models"
+	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/go-playground/form/v4"
 )
 
-// Add a snippets field to the application struct. This will allow us to
-// make the SnippetModel object available to our hadlers.
-
-// Define an application struct to hold the application-wide dependencies for the
-// web application. For now we'll only include the structured logger, but we'll
-// add more to this as the build progresses.
-
-// Add a formDecoder field to hold a pointer to a form.Decoder instance.
-// Add a new sessionManager field to the application struct.
-
-// Add a new users field to the application struct.
 type application struct {
 	logger         *slog.Logger
 	snippets       models.SnippetModelInterface // Use our new interface type.
@@ -49,9 +35,8 @@ type application struct {
 
 func main() {
 
-	// Define a new command-line flag for mysql DSN string.
-	dsn := flag.String("dsn", "web:1234@/snippetbox?parseTime=true", "MySQL data source name")
-	flag.Parse()
+	// Load environment variables from .env
+	godotenv.Load()
 
 	// Use the slog.New() function to initialize a new structured logger, which
 	// writes to the standard out stream and uses the default settings.
@@ -62,19 +47,47 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 
-	// To keep the main() function tidy put the code for creating a connection
-	// pool into the separate openDB() function below. we pass and pass openDB() the DSN
-	// from the command-line flag.
-	db, err := openDB(*dsn)
+	// --------------------
+	// Database
+	// --------------------
+	// Don't ever reorder the "os.Getenv" block
+
+	/*
+		dsn := fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?parseTime=true",
+			os.Getenv("SNIPPETBOX_DB_USER"),     // user
+			os.Getenv("SNIPPETBOX_DB_PASSWORD"), // password
+			os.Getenv("SNIPPETBOX_DB_HOST"),     // host
+			os.Getenv("SNIPPETBOX_DB_PORT"),     // port
+			os.Getenv("SNIPPETBOX_DB_NAME"),     // database
+		)
+	*/
+	dsn := os.Getenv("SNIPPETBOX_DB_DSN")
+
+	fmt.Println("DSN:", dsn)
+
+	var db *sql.DB
+	var err error
+	maxAttempts := 10
+	for i := 1; i <= maxAttempts; i++ {
+
+		db, err = openDB(dsn)
+		if err == nil {
+			break
+		}
+		log.Printf("DB not ready, attempt %d/%d: %v", i, maxAttempts, err)
+		time.Sleep(3 * time.Second)
+	}
 	if err != nil {
+		log.Fatalf("Could not connect to database: %v", err)
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
-
-	// also defer a call to db.Close(), so that the connection pool is closed
-	// before the main function exits.
 	defer db.Close()
 
+	// --------------------
+	// Templates & Forms
+	// --------------------
 	// Intitialize a new template cache...
 	templateCache, err := newTemplateCache()
 	if err != nil {
@@ -85,6 +98,9 @@ func main() {
 	// Initialize a decoder instance...
 	formDecoder := form.NewDecoder()
 
+	// --------------------
+	// Sessions
+	// --------------------
 	// Use the scs.New() function to initialize a new session manager. then we
 	// configure it to use our MySQL database as the session store, and set a
 	// lifetime of 12 hours (so that sessions auto expires 12 hours)
@@ -92,17 +108,13 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
-	// Make sure that the Secure attribute is set on our session cookies.
-	// Setting this means that the cookie will only be sent by a user's web
-	// browser when a HTTPS connection is being used (and won't be sent over an
-	// unsecure HTTP connection).
 	sessionManager.Cookie.Secure = true
 
+	// --------------------
+	// App
+	// --------------------
 	// Initialize a new instance of our application struct, containinig the
 	// dependencies..
-
-	// Intialize a models.UserModel instance and add it to the application
-	// dependecies.
 	app := &application{
 		logger:         logger,
 		snippets:       &models.SnippetModel{DB: db},
@@ -112,19 +124,32 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
-	// os.Getenv() only reads from already setted system environment variables.
-	// so we use the godotenv package to read the .env file and set the
-	// environment variables before we call os.Getenv().
-	godotenv.Load() // Load .env file
-	addr := os.Getenv("SNIPPETBOX_ADDR")
-
-	// Initialize a tls.Config struct to hold the non-default TLS settings we
-	// want the server to use. In this case the only thing that we're changing
-	// is the curve preferences value, so that only elliptic curves with
-	// assembly implimentations are used.
+	// --------------------
+	// TLS config
+	// --------------------
 	tlsConfig := &tls.Config{
-		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		CurvePreferences: []tls.CurveID{
+			tls.X25519,
+			tls.CurveP256,
+		},
 	}
+
+	// --------------------
+	// HTTP Server
+	// --------------------
+	addr := fmt.Sprintf(
+		"%s:%s",
+		os.Getenv("SNIPPETBOX_BIND_ADDR"),
+		os.Getenv("SNIPPETBOX_BIND_PORT"),
+	)
+
+	// 	Create an http.Server (important)
+
+	// Don’t use http.ListenAndServe
+	// Always use http.Server
+	// Why?
+	// http.Server exposes Shutdown() → this is the magic
+
 	// Initialize a new http.Server struct. We set the Addr and Handler fields so
 	// that the server uses the same network address and routes as before.
 
@@ -146,20 +171,70 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
-	// Use the Info() method to log the starting server message at Info severity
-	// (along with the listen address as an attribute).
-	logger.Info("starting server", "addr", addr)
+	// --------------------
+	// Graceful shutdown
+	// --------------------
+	// App exits cleanly when Docker / VPS stops it.
+	// clean shutdown logs → no panic
+	// 	On shutdown (SIGINT, SIGTERM):
 
-	// Call the ListenAndServer() method to start the HTTPS server. We
-	// pass in the paths to the TLS certificate and corresponding private key as
-	// the two parameters.
-	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
+	// 1. Listen for OS signals
+	// 2. Stop accepting new HTTP requests
+	// 3. Let in-flight requests finish
+	// 4. Close DB connections cleanly
 
-	// And we also use the Error() method to log any error message returned by
-	// http.ListenAndServer() at Error severity (with no additional attributes),
-	// and then call os.Exit(1) to terminate the application with exit code 1.
-	logger.Error(err.Error())
-	os.Exit(1)
+	// Listen for SIGINT / SIGTERM
+	// Create a channel to receive OS signals.
+	shutdownCh := make(chan os.Signal, 1)
+
+	// Notifyon SIGINT (Ctrl+c) AND SIGTERM(Docker, systemd).
+	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGTERM)
+
+	// Start Server in a Goroutine
+	// The main goroutine must stay free to listen for shutdown signals.
+	go func() {
+		logger.Info("starting server", "addr", addr, "env=", os.Getenv("SNIPPETBOX_ENV"))
+
+		tlsEnabled := os.Getenv("SNIPPETBOX_TLS_ENABLED") == "true"
+		certFile := os.Getenv("SNIPPBOX_TLS_CERT")
+		keyFile := os.Getenv("SNIPPBOX_TLS_KEY")
+
+		// Start TLS if enabled and files exist
+		if tlsEnabled && fileExists(certFile) && fileExists(keyFile) {
+			logger.Info("TLS enabled, starting HTTPS server")
+			err = srv.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			logger.Info("TLS disabled or cert/key not found, starting HTTP server")
+			err = srv.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error("server error", "err", err)
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-shutdownCh
+	app.logger.Info("shutdown signal received")
+
+	// Graceful shutdown timeout (env-based)
+	shutdownTimeout := 5 * time.Second
+	if v := os.Getenv("SNIPPETBOX_SHUTDOWN_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			shutdownTimeout = d
+		}
+	}
+
+	// Stop Accepting New Requests (Gracefully)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Error("graceful shutdown failed", "err", err)
+	}
+
+	logger.Info("server stopped cleanly")
+
 }
 
 // The openDB() function wraps sql.Open() and returns a sql.DB connection pool
@@ -178,4 +253,12 @@ func openDB(dsn string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func fileExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	_, err := os.Stat(path)
+	return err == nil
 }

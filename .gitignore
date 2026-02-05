@@ -6,7 +6,9 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Environment varibles file
+env
 .env
+.env.*
 
 # certificate files
 *.pem
