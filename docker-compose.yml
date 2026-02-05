@@ -4,7 +4,7 @@ services:
     container_name: snippetbox-db
     restart: unless-stopped
     env_file: 
-      - env/.env.dev
+      - .env
     environment:
       # Map the Snippetbox-specific names to the standard MySQL names
       - MYSQL_USER=${SNIPPETBOX_DB_USER}
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
     env_file: 
-      - env/.env.dev
+      - .env
     ports:
       # Expose only the app port to the host for your Reverse Proxy
       - "52100:52100"
