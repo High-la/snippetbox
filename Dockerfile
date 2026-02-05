@@ -48,7 +48,7 @@ WORKDIR /app
 COPY --from=build-stage /app/snippetbox /app/snippetbox
 
 # Copy SSR assets (templates and static files)
-COPY --from=build-stage /app/ui /app/ui
+COPY ui /app/ui
 
 # Optional: Copy migrations if you run them within the app container
 COPY --from=build-stage /app/internal/models/testdata /app/migrations

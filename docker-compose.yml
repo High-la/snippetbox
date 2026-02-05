@@ -34,7 +34,7 @@ services:
       - .env
     ports:
       # Expose only the app port to the host for your Reverse Proxy
-      - "52100:52100"
+      - "127.0.0.1:52100:52100"
     depends_on:
       snippetbox-db:
         condition: service_healthy
