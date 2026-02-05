@@ -2,7 +2,7 @@ name: Snippetbox CI/CD
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
   # 1 JOB: Build and Push the Docker Image
